@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import minimist from "minimist";
+import readline from "readline";
 import Share from "./share.js";
 const args = minimist(process.argv, {
   alias: {
@@ -27,4 +28,12 @@ await share.register("token:facturation");
 for await (const data of share.allRegistered()) {
   console.log(data);
 }
+
+const rl = readline.createInterface({
+  input: process.stdin,
+  output: process.stdout,
+});
+
+const close = () => new Promise((r) => rl.once("close", r));
+await close();
 await share.stop();
