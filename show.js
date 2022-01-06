@@ -30,6 +30,10 @@ for await (const data of share.allUsage()) {
   console.log(data);
 }
 console.log("server running, ctrl+c for stopping");
+const rl = readline.createInterface({
+  input: process.stdin,
+  output: process.stdout,
+});
 const close = () => new Promise((r) => rl.once("close", r));
 await close();
 await share.stop();
