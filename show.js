@@ -11,16 +11,14 @@ const args = minimist(process.argv, {
   },
   default: {
     mandate: "share-0",
-    writers: "",
-    indexes: "",
   },
 });
 
 const share = new Share({
   realm: args.realm,
   mandate: args.mandate,
-  writers: args.writers.split(","),
-  indexes: args.indexes.split(","),
+  writers: args.writers?.split(","),
+  indexes: args.indexes?.split(","),
 });
 
 await share.start();
