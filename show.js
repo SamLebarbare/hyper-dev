@@ -28,4 +28,7 @@ for await (const data of share.allRegistered()) {
 for await (const data of share.allUsage()) {
   console.log(data);
 }
+console.log("server running, ctrl+c for stopping");
+const close = () => new Promise((r) => rl.once("close", r));
+await close();
 await share.stop();
