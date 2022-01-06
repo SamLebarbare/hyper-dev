@@ -61,10 +61,13 @@ class Share {
     await this.autobase.ready();
 
     const topic = Buffer.from(sha256(`hyper://${this.realm}-share`), "hex");
-    this.swarm = Hyperswarm();
-    this.swarm.on("connection", (socket) => this.store.replicate(socket));
+    this.swarm = new Hyperswarm();
+    this.swarm.on("connection", (socket) => {
+      console.log("swarm received connection!");
+      this.store.replicate(socket);
+    });
     this.swarm.join(topic);
-    await this.flushSwarm();
+    await this.swarm.flush();
     process.once("SIGINT", async () => {
       this.swarm.destroy();
     });
@@ -107,11 +110,8 @@ class Share {
     });
   }
 
-  flushSwarm() {
-    return new Promise((r) => this.swarm.flush(r));
-  }
-
   stop() {
+    console.log("stopping...");
     return new Promise((r) => this.swarm.destroy(r));
   }
 

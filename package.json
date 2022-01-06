@@ -14,7 +14,7 @@
     "chalk": "^5.0.0",
     "corestore": "^6.0.1-alpha.9",
     "hyperbee": "^1.7.0",
-    "hyperswarm": "next",
+    "hyperswarm": "^3.0.1",
     "minimist": "^1.2.5",
     "random-access-memory": "^4.0.0"
   }

@@ -34,6 +34,7 @@ const rl = readline.createInterface({
   output: process.stdout,
 });
 
+console.log("server running, ctrl+c for stopping");
 const close = () => new Promise((r) => rl.once("close", r));
 await close();
 await share.stop();
