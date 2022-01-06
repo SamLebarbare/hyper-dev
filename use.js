@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 import minimist from "minimist";
 import Share from "./share.js";
+import os from "os";
+
 const args = minimist(process.argv, {
   alias: {
     licence: "l",
@@ -28,5 +30,5 @@ for await (const data of share.allRegistered()) {
 for await (const data of share.allUsage()) {
   console.log(data);
 }
-await share.use(args.licence, require("os").hostname());
+await share.use(args.licence, os.hostname());
 await share.stop();
