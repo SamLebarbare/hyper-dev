@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import minimist from "minimist";
+import readline from "readline";
 import Share from "./share.js";
 const args = minimist(process.argv, {
   alias: {
