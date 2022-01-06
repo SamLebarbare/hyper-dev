@@ -1,7 +1,7 @@
 import Corestore from "corestore";
 import Hyperswarm from "hyperswarm";
 import Autobase from "autobase";
-import Hyperbee from "Hyperbee";
+import Hyperbee from "hyperbee";
 import crypto from "crypto";
 
 function sha256(input) {
