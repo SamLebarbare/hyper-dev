@@ -24,12 +24,14 @@ class Share {
     this.writers = writers;
     this.indexes = indexes;
     this.peers = new Set();
+    this.peersData = new WeakMap();
   }
 
-  debugInfo() {
-    console.log("Share info:");
+  async debugInfo() {
+    console.log("\n◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤ SHARE INFO ◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢\n");
     console.log();
     console.log("realm:", this.realm);
+    console.log("peers:", this.peers.size);
     console.log(
       "writers:",
       this.autobase.inputs.map((i) => i.key.toString("hex")).join(" ")
@@ -38,6 +40,15 @@ class Share {
       "indexes:",
       this.autobase.defaultOutputs.map((i) => i.key.toString("hex")).join(" ")
     );
+    console.log("\n◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤ LICENCES ◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢\n");
+    for await (const data of this.allRegistered()) {
+      console.log(data);
+    }
+    console.log("\n◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤ IN-USE ◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢\n");
+    for await (const data of this.allUsage()) {
+      console.log(data);
+    }
+    console.log("\n◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢\n");
   }
 
   async start() {
@@ -69,6 +80,7 @@ class Share {
         switch (payload.type) {
           case "join":
             const { writer, index } = payload;
+            this.peersData.set(socket, { writer, index });
             await this.autobase.addInput(
               this.store.get(Buffer.from(writer, "hex"))
             );
@@ -84,8 +96,15 @@ class Share {
       socket.on("error", (err) => {
         console.log("realm peer errored:", err);
       });
-      socket.on("close", () => {
+      socket.on("close", async () => {
         console.log("realm peer fully left");
+        const { writer, index } = this.peersData.get(socket);
+        await this.autobase.removeInput(
+          this.store.get(Buffer.from(writer, "hex"))
+        );
+        await this.autobase.removeDefaultOutput(
+          this.store.get(Buffer.from(index, "hex"))
+        );
         this.peers.delete(socket);
       });
     });
@@ -103,7 +122,6 @@ class Share {
       this.realmSwarm.destroy();
     });
 
-    this.debugInfo();
     await this.update();
   }
 
@@ -143,14 +161,7 @@ class Share {
       valueEncoding: "json",
     });
 
-    console.log("\n◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤ LICENCES ◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢\n");
-    for await (const data of this.allRegistered()) {
-      console.log(data);
-    }
-    console.log("\n◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤ IN-USE ◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢\n");
-    for await (const data of this.allUsage()) {
-      console.log(data);
-    }
+    await this.debugInfo();
 
     if (!remote) {
       this.notify();
@@ -186,6 +197,7 @@ class Share {
 
   async use(licenceId, user) {
     console.log("checking usable:", licenceId);
+    let usable = false;
     const existingLicence = await this.bee.get(licenceId);
     if (existingLicence) {
       const useId = `usage@${licenceId}`;
@@ -200,12 +212,14 @@ class Share {
         );
         await this.update();
         console.log("used");
+        usable = true;
       } else {
         console.log("used by:", existingUsage.value.user);
       }
     } else {
       console.log("licence not found!");
     }
+    return usable;
   }
 
   async release(licenceId) {

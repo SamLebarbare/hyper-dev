@@ -23,8 +23,6 @@ const share = new Share({
 
 await share.start();
 await share.register("c1", "token:comptabilité");
-//await share.register("s1", "token:salaire");
-//await share.register("f1", "token:facturation");
 
 console.log("server running, ctrl+c for stopping");
 const rl = readline.createInterface({
