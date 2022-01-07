@@ -16,11 +16,14 @@ class Share {
   }) {
     this.store = new Corestore(mandate);
     this.swarm = null;
+    this.realmSwarm = null;
     this.autobase = null;
     this.bee = null;
+    this.view = null;
     this.realm = realm;
     this.writers = writers;
     this.indexes = indexes;
+    this.peers = new Set();
   }
 
   debugInfo() {
@@ -44,38 +47,72 @@ class Share {
     this.realm = this.realm || writer.key.slice(0, 8).toString("hex");
     this.autobase = new Autobase([writer], { outputs: viewOutput });
 
-    //add remote writers
-    for (const w of this.writers) {
-      await this.autobase.addInput(this.store.get(Buffer.from(w, "hex")));
-    }
-
-    //Default outputs are mainly useful during "remote linearizing",
-    //when readers of an Autobase can use them as the "trunk" during linearization,
-    //and thus can minimize the amount of local re-processing they need to do during updates.
-    for (const i of this.indexes) {
-      await this.autobase.addDefaultOutput(
-        this.store.get(Buffer.from(i, "hex"))
-      );
-    }
-
     await this.autobase.ready();
 
-    const topic = Buffer.from(sha256(`hyper://${this.realm}-share`), "hex");
+    const hyperStoreTopic = Buffer.from(sha256(`hyper://licence-store`), "hex");
+    const realmTopic = Buffer.from(sha256(`hyper://licence-realm`), "hex");
     this.swarm = new Hyperswarm();
+    this.realmSwarm = new Hyperswarm();
+    this.realmSwarm.on("connection", async (socket) => {
+      this.peers.add(socket);
+      console.log("realm received connection!");
+      socket.write(
+        JSON.stringify({
+          type: "join",
+          writer: writer.key.toString("hex"),
+          index: viewOutput.key.toString("hex"),
+        })
+      );
+
+      socket.on("data", async (data) => {
+        const payload = JSON.parse(data.toString());
+        switch (payload.type) {
+          case "join":
+            const { writer, index } = payload;
+            await this.autobase.addInput(
+              this.store.get(Buffer.from(writer, "hex"))
+            );
+            await this.autobase.addDefaultOutput(
+              this.store.get(Buffer.from(index, "hex"))
+            );
+            this.rebase();
+          case "rebase":
+            this.rebase();
+        }
+      });
+
+      socket.on("error", (err) => {
+        console.log("realm peer errored:", err);
+      });
+      socket.on("close", () => {
+        console.log("realm peer fully left");
+        this.peers.delete(socket);
+      });
+    });
+
     this.swarm.on("connection", (socket) => {
-      console.log("swarm received connection!");
       this.store.replicate(socket);
     });
-    this.swarm.join(topic);
+
+    this.realmSwarm.join(realmTopic);
+    this.swarm.join(hyperStoreTopic);
     await this.swarm.flush();
+    await this.realmSwarm.flush();
     process.once("SIGINT", async () => {
       this.swarm.destroy();
+      this.realmSwarm.destroy();
     });
 
     this.debugInfo();
+    await this.rebase();
+  }
 
+  async rebase() {
+    if (this.view) {
+      await this.view.update();
+    }
     const self = this;
-    const view = this.autobase.linearize({
+    this.view = this.autobase.linearize({
       unwrap: true,
       async apply(batch) {
         const b = self.bee.batch({ update: false });
@@ -84,7 +121,7 @@ class Share {
           const op = JSON.parse(value);
 
           if (op.type === "register") {
-            const id = `licence@${op.hash}`;
+            const id = `licence@${op.id}`;
             await b.put(id, { id, data: op.data });
           }
 
@@ -103,27 +140,46 @@ class Share {
       },
     });
 
-    this.bee = new Hyperbee(view, {
+    this.bee = new Hyperbee(this.view, {
       extension: false,
       keyEncoding: "utf-8",
       valueEncoding: "json",
     });
+    console.log("\n◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤ LICENCES ◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢\n");
+    for await (const data of this.allRegistered()) {
+      console.log(data);
+    }
+    console.log("\n◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤ IN-USE ◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢\n");
+    for await (const data of this.allUsage()) {
+      console.log(data);
+    }
+  }
+
+  notify() {
+    for (const peer of this.peers) {
+      peer.write(
+        JSON.stringify({
+          type: "rebase",
+        })
+      );
+    }
   }
 
   stop() {
     console.log("stopping...");
-    return new Promise((r) => this.swarm.destroy(r));
+    process.exit();
   }
 
-  async register(data) {
+  async register(id, data) {
     const hash = sha256(data);
     await this.autobase.append(
       JSON.stringify({
         type: "register",
-        hash,
+        id,
         data: data,
       })
     );
+    this.notify();
   }
 
   async use(licenceId, user) {
@@ -141,6 +197,7 @@ class Share {
           })
         );
         console.log("used");
+        this.notify();
       } else {
         console.log("used by:", existingUsage.value.user);
       }
@@ -163,6 +220,7 @@ class Share {
           })
         );
         console.log("released");
+        this.notify();
       } else {
         console.log("not used");
       }

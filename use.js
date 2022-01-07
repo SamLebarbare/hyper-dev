@@ -24,11 +24,5 @@ const share = new Share({
 });
 
 await share.start();
-for await (const data of share.allRegistered()) {
-  console.log(data);
-}
-for await (const data of share.allUsage()) {
-  console.log(data);
-}
 await share.use(args.licence, os.hostname());
 await share.stop();

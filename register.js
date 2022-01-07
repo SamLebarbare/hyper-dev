@@ -22,12 +22,9 @@ const share = new Share({
 });
 
 await share.start();
-await share.register("token:comptabilité");
-await share.register("token:salaire");
-await share.register("token:facturation");
-for await (const data of share.allRegistered()) {
-  console.log(data);
-}
+await share.register("c1", "token:comptabilité");
+//await share.register("s1", "token:salaire");
+//await share.register("f1", "token:facturation");
 
 console.log("server running, ctrl+c for stopping");
 const rl = readline.createInterface({
