@@ -1,7 +1,6 @@
 # p2p shared licences Demo
 
-## Scenario for testing on the same repository
-
+## Scenario for testing on the same host
 Open three terminals and observe licence usage replicating
 
 - term1: `./show.js ` used to observe licence usage of other peers
