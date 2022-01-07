@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import minimist from "minimist";
 import Share from "./share.js";
+import readline from "readline";
 import os from "os";
 
 const args = minimist(process.argv, {
@@ -25,4 +26,11 @@ const share = new Share({
 
 await share.start();
 await share.use(args.licence, os.hostname());
+console.log("server running, ctrl+c for stopping");
+const rl = readline.createInterface({
+  input: process.stdin,
+  output: process.stdout,
+});
+const close = () => new Promise((r) => rl.once("close", r));
+await close();
 await share.stop();

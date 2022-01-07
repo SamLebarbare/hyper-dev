@@ -75,9 +75,9 @@ class Share {
             await this.autobase.addDefaultOutput(
               this.store.get(Buffer.from(index, "hex"))
             );
-            this.rebase();
+            this.update(true);
           case "rebase":
-            this.rebase();
+            this.update(true);
         }
       });
 
@@ -104,13 +104,10 @@ class Share {
     });
 
     this.debugInfo();
-    await this.rebase();
+    await this.update();
   }
 
-  async rebase() {
-    if (this.view) {
-      await this.view.update();
-    }
+  async update(remote) {
     const self = this;
     this.view = this.autobase.linearize({
       unwrap: true,
@@ -145,6 +142,7 @@ class Share {
       keyEncoding: "utf-8",
       valueEncoding: "json",
     });
+
     console.log("\n◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤ LICENCES ◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢\n");
     for await (const data of this.allRegistered()) {
       console.log(data);
@@ -152,6 +150,10 @@ class Share {
     console.log("\n◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤ IN-USE ◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢\n");
     for await (const data of this.allUsage()) {
       console.log(data);
+    }
+
+    if (!remote) {
+      this.notify();
     }
   }
 
@@ -179,7 +181,7 @@ class Share {
         data: data,
       })
     );
-    this.notify();
+    await this.update();
   }
 
   async use(licenceId, user) {
@@ -196,8 +198,8 @@ class Share {
             user,
           })
         );
+        await this.update();
         console.log("used");
-        this.notify();
       } else {
         console.log("used by:", existingUsage.value.user);
       }
@@ -219,8 +221,8 @@ class Share {
             licenceId,
           })
         );
+        await this.update();
         console.log("released");
-        this.notify();
       } else {
         console.log("not used");
       }

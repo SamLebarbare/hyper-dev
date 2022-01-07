@@ -1,6 +1,9 @@
 #!/usr/bin/env node
 import minimist from "minimist";
 import Share from "./share.js";
+import readline from "readline";
+import os from "os";
+
 const args = minimist(process.argv, {
   alias: {
     licence: "l",
@@ -22,11 +25,12 @@ const share = new Share({
 });
 
 await share.start();
-for await (const data of share.allRegistered()) {
-  console.log(data);
-}
-for await (const data of share.allUsage()) {
-  console.log(data);
-}
-await share.release(args.licence, "sam");
+await share.release(args.licence, os.hostname());
+console.log("server running, ctrl+c for stopping");
+const rl = readline.createInterface({
+  input: process.stdin,
+  output: process.stdout,
+});
+const close = () => new Promise((r) => rl.once("close", r));
+await close();
 await share.stop();
