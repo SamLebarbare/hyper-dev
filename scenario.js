@@ -2,7 +2,7 @@
 import minimist from "minimist";
 import Share from "./share.js";
 import readline from "readline";
-import os from "os";
+import chalk from "chalk";
 
 const args = minimist(process.argv, {
   alias: {
@@ -22,22 +22,22 @@ const share = new Share({
   mandate: args.mandate,
   writers: args.writers?.split(","),
   indexes: args.indexes?.split(","),
+  debug: false,
 });
 
 await share.start();
 await share.register("c1", "token:comptabilité");
 const retry = () => {
   const cancel = setInterval(async () => {
-    console.log("Try using licence@c1");
+    console.log(chalk.green("Using..."));
     const usable = await share.use("licence@c1", args.mandate);
     if (usable) {
-      console.log("Using...");
       setTimeout(async () => {
         await share.release("licence@c1", args.mandate);
-        console.log("Using...[DONE]");
+        console.log(chalk.green("Using...[DONE]"));
       }, 3000);
     } else {
-      console.log("Cannot use licence@c1");
+      console.log(chalk.red("Using...[FAILED]"));
       clearInterval(cancel);
       setTimeout(retry, 2000);
     }

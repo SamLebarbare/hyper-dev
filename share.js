@@ -3,6 +3,7 @@ import Hyperswarm from "hyperswarm";
 import Autobase from "autobase";
 import Hyperbee from "hyperbee";
 import crypto from "crypto";
+import chalk from "chalk";
 
 function sha256(input) {
   return crypto.createHash("sha256").update(input).digest("hex");
@@ -13,6 +14,7 @@ class Share {
     mandate = "share-0",
     writers = [],
     indexes = [],
+    debug = true,
   }) {
     this.store = new Corestore(mandate);
     this.swarm = null;
@@ -25,9 +27,13 @@ class Share {
     this.indexes = indexes;
     this.peers = new Set();
     this.peersData = new WeakMap();
+    this.debug = debug;
   }
 
   async debugInfo() {
+    if (!this.debug) {
+      return;
+    }
     console.log("\n◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤ SHARE INFO ◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢\n");
     console.log();
     console.log("realm:", this.realm);
@@ -196,7 +202,6 @@ class Share {
   }
 
   async use(licenceId, user) {
-    console.log("checking usable:", licenceId);
     let usable = false;
     const existingLicence = await this.bee.get(licenceId);
     if (existingLicence) {
@@ -211,10 +216,10 @@ class Share {
           })
         );
         await this.update();
-        console.log("used");
+        console.log(chalk.green("used by:", user));
         usable = true;
       } else {
-        console.log("used by:", existingUsage.value.user);
+        console.log(chalk.red("used by:"), existingUsage.value.user);
       }
     } else {
       console.log("licence not found!");
@@ -223,7 +228,6 @@ class Share {
   }
 
   async release(licenceId) {
-    console.log("checking usable:", licenceId);
     const existingLicence = await this.bee.get(licenceId);
     if (existingLicence) {
       const useId = `usage@${licenceId}`;
@@ -236,7 +240,7 @@ class Share {
           })
         );
         await this.update();
-        console.log("released");
+        console.log(chalk.green("released", licenceId));
       } else {
         console.log("not used");
       }
