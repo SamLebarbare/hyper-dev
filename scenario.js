@@ -22,7 +22,7 @@ const share = new Share({
   mandate: args.mandate,
   writers: args.writers?.split(","),
   indexes: args.indexes?.split(","),
-  debug: false,
+  debug: true,
 });
 
 await share.start();

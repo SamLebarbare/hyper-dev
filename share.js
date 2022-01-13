@@ -44,7 +44,7 @@ class Share {
     );
     console.log(
       "indexes:",
-      this.autobase.defaultOutputs.map((i) => i.key.toString("hex")).join(" ")
+      this.autobase.outputs.map((i) => i.key.toString("hex")).join(" ")
     );
     console.log("\n◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤ LICENCES ◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢\n");
     for await (const data of this.allRegistered()) {
@@ -62,9 +62,19 @@ class Share {
     const viewOutput = this.store.get({ name: "view" });
     await writer.ready();
     this.realm = this.realm || writer.key.slice(0, 8).toString("hex");
-    this.autobase = new Autobase([writer], { outputs: viewOutput });
+
+    this.autobase = new Autobase({
+      localInput: writer,
+      localOutput: viewOutput,
+    });
+
+    this.autobase.start({
+      unwrap: true,
+      apply: this.apply.bind(this),
+    });
 
     await this.autobase.ready();
+    await this.autobase.view.update();
 
     const hyperStoreTopic = Buffer.from(sha256(`hyper://licence-store`), "hex");
     const realmTopic = Buffer.from(sha256(`hyper://licence-realm`), "hex");
@@ -84,18 +94,22 @@ class Share {
       socket.on("data", async (data) => {
         const payload = JSON.parse(data.toString());
         switch (payload.type) {
-          case "join":
+          case "join": {
             const { writer, index } = payload;
             this.peersData.set(socket, { writer, index });
             await this.autobase.addInput(
               this.store.get(Buffer.from(writer, "hex"))
             );
-            await this.autobase.addDefaultOutput(
+            await this.autobase.addOutput(
               this.store.get(Buffer.from(index, "hex"))
             );
             this.update(true);
-          case "rebase":
+            break;
+          }
+          case "rebase": {
             this.update(true);
+            break;
+          }
         }
       });
 
@@ -108,7 +122,7 @@ class Share {
         await this.autobase.removeInput(
           this.store.get(Buffer.from(writer, "hex"))
         );
-        await this.autobase.removeDefaultOutput(
+        await this.autobase.removeOutput(
           this.store.get(Buffer.from(index, "hex"))
         );
         this.peers.delete(socket);
@@ -131,37 +145,37 @@ class Share {
     await this.update();
   }
 
+  async apply(batch, clocks, change) {
+    const b = this.bee.batch({ update: false });
+
+    for (const { value } of batch) {
+      const op = JSON.parse(value);
+
+      if (op.type === "register") {
+        const id = `licence@${op.id}`;
+        await b.put(id, { id, data: op.data });
+      }
+
+      if (op.type === "use") {
+        const id = `usage@${op.licenceId}`;
+        await b.put(id, { id, user: op.user });
+      }
+
+      if (op.type === "release") {
+        const id = `usage@${op.licenceId}`;
+        await b.del(id);
+      }
+    }
+
+    await b.flush();
+  }
+
   async update(remote) {
-    const self = this;
-    this.view = this.autobase.linearize({
-      unwrap: true,
-      async apply(batch) {
-        const b = self.bee.batch({ update: false });
-
-        for (const { value } of batch) {
-          const op = JSON.parse(value);
-
-          if (op.type === "register") {
-            const id = `licence@${op.id}`;
-            await b.put(id, { id, data: op.data });
-          }
-
-          if (op.type === "use") {
-            const id = `usage@${op.licenceId}`;
-            await b.put(id, { id, user: op.user });
-          }
-
-          if (op.type === "release") {
-            const id = `usage@${op.licenceId}`;
-            await b.del(id);
-          }
-        }
-
-        await b.flush();
-      },
-    });
-
-    this.bee = new Hyperbee(this.view, {
+    if (!this.autobase.view) {
+      return;
+    }
+    await this.autobase.view.update();
+    this.bee = new Hyperbee(this.autobase.view, {
       extension: false,
       keyEncoding: "utf-8",
       valueEncoding: "json",
