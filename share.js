@@ -21,7 +21,6 @@ class Share {
     this.realmSwarm = null;
     this.autobase = null;
     this.bee = null;
-    this.view = null;
     this.realm = realm;
     this.writers = writers;
     this.indexes = indexes;
