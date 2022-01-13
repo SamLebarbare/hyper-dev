@@ -4,6 +4,7 @@ import Autobase from "autobase";
 import Hyperbee from "hyperbee";
 import crypto from "crypto";
 import chalk from "chalk";
+import { write } from "fs";
 
 function sha256(input) {
   return crypto.createHash("sha256").update(input).digest("hex");
@@ -63,6 +64,7 @@ class Share {
     this.realm = this.realm || writer.key.slice(0, 8).toString("hex");
 
     this.autobase = new Autobase({
+      inputs: [writer],
       localInput: writer,
       localOutput: viewOutput,
     });
@@ -73,6 +75,13 @@ class Share {
     });
 
     await this.autobase.ready();
+
+    this.bee = new Hyperbee(this.autobase.view, {
+      extension: false,
+      keyEncoding: "utf-8",
+      valueEncoding: "json",
+    });
+
     await this.autobase.view.update();
 
     const hyperStoreTopic = Buffer.from(sha256(`hyper://licence-store`), "hex");
@@ -170,16 +179,7 @@ class Share {
   }
 
   async update(remote) {
-    if (!this.autobase.view) {
-      return;
-    }
     await this.autobase.view.update();
-    this.bee = new Hyperbee(this.autobase.view, {
-      extension: false,
-      keyEncoding: "utf-8",
-      valueEncoding: "json",
-    });
-
     await this.debugInfo();
 
     if (!remote) {
