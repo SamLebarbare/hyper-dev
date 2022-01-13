@@ -65,6 +65,7 @@ class Share {
 
     this.autobase = new Autobase({
       inputs: [writer],
+      outputs: [viewOutput],
       localInput: writer,
       localOutput: viewOutput,
     });
@@ -81,8 +82,6 @@ class Share {
       keyEncoding: "utf-8",
       valueEncoding: "json",
     });
-
-    await this.autobase.view.update();
 
     const hyperStoreTopic = Buffer.from(sha256(`hyper://licence-store`), "hex");
     const realmTopic = Buffer.from(sha256(`hyper://licence-realm`), "hex");
@@ -146,8 +145,7 @@ class Share {
     await this.swarm.flush();
     await this.realmSwarm.flush();
     process.once("SIGINT", async () => {
-      this.swarm.destroy();
-      this.realmSwarm.destroy();
+      this.stop();
     });
 
     await this.update();
@@ -179,6 +177,7 @@ class Share {
   }
 
   async update(remote) {
+    await this.autobase.ready();
     await this.autobase.view.update();
     await this.debugInfo();
 
@@ -199,6 +198,8 @@ class Share {
 
   stop() {
     console.log("stopping...");
+    this.swarm.destroy();
+    this.realmSwarm.destroy();
     process.exit();
   }
 

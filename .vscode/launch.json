@@ -7,11 +7,22 @@
         {
             "type": "node",
             "request": "launch",
-            "name": "Launch Program",
+            "name": "Share0",
             "skipFiles": [
                 "<node_internals>/**"
             ],
-            "program": "${workspaceFolder}\\scenario.js"
+            "program": "${workspaceFolder}\\scenario.js",
+            "args": ["--mandate","share-0"]
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Share1",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "program": "${workspaceFolder}\\scenario.js",
+            "args": ["--mandate","share-1"]
         }
     ]
 }
