@@ -163,8 +163,9 @@ class Share {
       this.stop();
     });
 
-    await this.updateQueue.enqueue(this.update());
     this.ready = true;
+    await this.updateQueue.enqueue(this.update());
+    console.log("started!");
   }
 
   async flushSwarms() {
@@ -254,12 +255,17 @@ class Share {
   }
 
   notify() {
+    let notified = 0;
     for (const peer of this.peers) {
       peer.write(
         JSON.stringify({
           type: "rebase",
         })
       );
+      notified++;
+    }
+    if (notified > 0) {
+      console.log("notified", notified, " peer(s)");
     }
   }
 
