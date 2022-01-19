@@ -17,6 +17,7 @@ class Share {
     indexes = [],
     debug = true,
   }) {
+    this.mandate = mandate;
     this.store = new Corestore(mandate);
     this.swarm = null;
     this.realmSwarm = null;
@@ -110,6 +111,7 @@ class Share {
       socket.write(
         JSON.stringify({
           type: "join",
+          user: this.mandate,
           writer: writer.key.toString("hex"),
           index: viewOutput.key.toString("hex"),
         })
@@ -119,7 +121,8 @@ class Share {
         const payload = JSON.parse(data.toString());
         switch (payload.type) {
           case "join": {
-            const { writer, index } = payload;
+            const { user, writer, index } = payload;
+            console.log(user, "joined");
             this.peersData.set(socket, { writer, index });
             await this.autobase.ready();
             await this.autobase.addInput(
@@ -132,7 +135,9 @@ class Share {
             break;
           }
           case "rebase": {
-            this.updateQueue.enqueue(this.update(true));
+            console.log("rebase needed...");
+            await this.updateQueue.enqueue(this.update(true));
+            console.log("rebased!");
             break;
           }
         }
