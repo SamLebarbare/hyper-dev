@@ -156,10 +156,9 @@ class Share {
       this.store.replicate(socket);
     });
 
-    const realmDiscovery = this.realmSwarm.join(this.realmTopic);
-    await realmDiscovery.flushed();
-    const discovery = this.swarm.join(this.hyperStoreTopic);
-    await discovery.flushed();
+    this.realmDiscovery = this.realmSwarm.join(this.realmTopic);
+
+    this.storeDiscovery = this.swarm.join(this.hyperStoreTopic);
     await this.flushSwarms();
     process.once("SIGINT", async () => {
       this.stop();
@@ -170,7 +169,14 @@ class Share {
     console.log("started!");
   }
 
+  async refreshDiscovery() {
+    await this.storeDiscovery.refresh();
+    await this.realmDiscovery.refresh();
+  }
+
   async flushSwarms() {
+    await this.storeDiscovery.flushed();
+    await this.realmDiscovery.flushed();
     await this.swarm.flush();
     await this.realmSwarm.flush();
   }
@@ -233,6 +239,7 @@ class Share {
         }
         console.log("in queue:", this.updateQueue.size);
         console.log("updating...");
+        await this.refreshDiscovery();
         await this.flushSwarms();
         await this.autobase.ready();
         await this.autobase.view.update();
