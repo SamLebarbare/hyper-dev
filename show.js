@@ -9,9 +9,11 @@ const args = minimist(process.argv, {
     writers: "w",
     indexes: "i",
     realm: "r",
+    debug: "d",
   },
   default: {
     mandate: "share-0",
+    debug: false,
   },
 });
 
@@ -20,6 +22,7 @@ const share = new Share({
   mandate: args.mandate,
   writers: args.writers?.split(","),
   indexes: args.indexes?.split(","),
+  debug: args.debug,
 });
 
 await share.start();

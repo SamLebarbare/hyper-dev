@@ -9,5 +9,6 @@ Open three terminals and observe licence usage replicating
 
 ## TODO
 
-- [ ] TTL on licences (auto-release)
+- [x] TTL on licences (auto-release)
 - [ ] catch when a store replication fail (avoid crash when peers leaves during streaming)
+- [ ] debounce updates

@@ -11,9 +11,11 @@ const args = minimist(process.argv, {
     writers: "w",
     indexes: "i",
     realm: "r",
+    debug: "d",
   },
   default: {
     mandate: "share-0",
+    debug: false,
   },
 });
 
@@ -22,35 +24,34 @@ const share = new Share({
   mandate: args.mandate,
   writers: args.writers?.split(","),
   indexes: args.indexes?.split(","),
-  debug: true,
+  debug: args.debug,
 });
 
 await share.start();
 await share.register("c1", "token:comptabilité");
-const retry = () => {
-  const cancel = setInterval(async () => {
-    console.log(chalk.green("Using..."));
-    const usable = await share.use("licence@c1", args.mandate);
-    if (usable) {
-      setTimeout(async () => {
-        await share.release("licence@c1", args.mandate);
-        console.log(chalk.green("Using...[DONE]"));
-      }, 3000);
-    } else {
-      console.log(chalk.red("Using...[FAILED]"));
-      clearInterval(cancel);
-      setTimeout(retry, 2000);
-    }
-  }, 5000);
+const retry = async () => {
+  console.log(chalk.green("Try using..."));
+  const usable = await share.use("licence@c1", args.mandate);
+  console.log(chalk.green("usable:", usable));
+  if (usable) {
+    console.log(chalk.green("start using for 10sec"));
+    setTimeout(async () => {
+      await share.release("licence@c1", args.mandate);
+      console.log(chalk.green("Using...[DONE]"));
+      setTimeout(retry, 5000);
+    }, 10000);
+  } else {
+    console.log(chalk.red("Using...[FAILED]"));
+    setTimeout(retry, 2000);
+  }
 };
 
 retry();
-console.log("server running, ctrl+c for stopping");
+console.log("server running, press [enter] to leave");
 const rl = readline.createInterface({
   input: process.stdin,
   output: process.stdout,
 });
 const close = () => new Promise((r) => rl.once("close", r));
 await close();
-await share.release("licence@c1", args.mandate);
 await share.stop();
