@@ -25,8 +25,10 @@ const share = new Share({
 });
 
 await share.start();
-await share.use(args.licence, os.hostname());
 console.log("server running, ctrl+c for stopping");
+await share.register("c1", "token:comptabilité");
+const usable = await share.use("licence@c1", args.mandate);
+console.log("USABLE:", usable);
 const rl = readline.createInterface({
   input: process.stdin,
   output: process.stdout,
