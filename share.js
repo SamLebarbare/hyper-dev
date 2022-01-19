@@ -103,9 +103,7 @@ class Share {
     this.realmTopic = Buffer.from(sha256(`hyper://licence-realm`), "hex");
     console.log("realm-topic:", this.realmTopic.toString("hex"));
     this.swarm = new Hyperswarm();
-    this.realmSwarm = new Hyperswarm({
-      dht: this.swarm.dht,
-    });
+    this.realmSwarm = new Hyperswarm();
     this.realmSwarm.on("connection", async (socket) => {
       this.peers.add(socket);
       console.log("realm received connection!");
