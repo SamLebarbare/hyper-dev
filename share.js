@@ -303,6 +303,7 @@ class Share {
   }
 
   async use(licenceId, user) {
+    await this.autobase.ready();
     let usable = false;
     const existingLicence = await this.bee.get(licenceId);
     if (existingLicence) {
@@ -343,6 +344,7 @@ class Share {
   }
 
   async release(licenceId) {
+    await this.autobase.ready();
     console.log(chalk.green("try releasing:", licenceId));
     const existingLicence = await this.bee.get(licenceId);
     if (existingLicence) {
