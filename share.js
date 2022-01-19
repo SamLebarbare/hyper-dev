@@ -106,8 +106,8 @@ class Share {
     this.swarm = new Hyperswarm();
     this.realmSwarm = new Hyperswarm();
     this.realmSwarm.on("connection", async (socket) => {
-      this.peers.add(socket);
       console.log("realm received connection!");
+      this.peers.add(socket);
       socket.write(
         JSON.stringify({
           type: "join",
@@ -156,8 +156,10 @@ class Share {
       this.store.replicate(socket);
     });
 
-    this.realmSwarm.join(this.realmTopic);
-    this.swarm.join(this.hyperStoreTopic);
+    const realmDiscovery = this.realmSwarm.join(this.realmTopic);
+    await realmDiscovery.flushed();
+    const discovery = this.swarm.join(this.hyperStoreTopic);
+    await discovery.flushed();
     await this.flushSwarms();
     process.once("SIGINT", async () => {
       this.stop();
