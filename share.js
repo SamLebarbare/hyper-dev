@@ -231,36 +231,33 @@ class Share {
   }
 
   update(remote) {
-    return () =>
-      new Promise(async (r) => {
-        if (remote && !this.ready) {
-          r();
-          return;
+    return async () => {
+      if (remote && !this.ready) {
+        return;
+      }
+      console.log("in queue:", this.updateQueue.size);
+      console.log("updating...");
+      await this.refreshDiscovery();
+      await this.flushSwarms();
+      await this.autobase.ready();
+      await this.autobase.view.update();
+      console.log("updating...[DONE]");
+      if (remote) {
+        //register auto release of remote usage
+        for await (const data of this.allUsage()) {
+          this.addAutoRelease(data.licenceId);
         }
-        console.log("in queue:", this.updateQueue.size);
-        console.log("updating...");
-        await this.refreshDiscovery();
-        await this.flushSwarms();
-        await this.autobase.ready();
-        await this.autobase.view.update();
-        console.log("updating...[DONE]");
-        if (remote) {
-          //register auto release of remote usage
-          for await (const data of this.allUsage()) {
-            this.addAutoRelease(data.licenceId);
-          }
-        }
+      }
 
-        if (this.debug) {
-          await this.debugInfo();
-        } else {
-          await this.info();
-        }
-        if (!remote) {
-          this.notify();
-        }
-        r();
-      });
+      if (this.debug) {
+        await this.debugInfo();
+      } else {
+        await this.info();
+      }
+      if (!remote) {
+        this.notify();
+      }
+    };
   }
 
   notify() {

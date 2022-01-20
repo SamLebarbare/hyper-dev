@@ -11,4 +11,5 @@ Open three terminals and observe licence usage replicating
 
 - [x] TTL on licences (auto-release)
 - [ ] catch when a store replication fail (avoid crash when peers leaves during streaming)
-- [ ] debounce updates
+- [x] update queue
+- [ ] peer discovery destroyed (dispose bug)
